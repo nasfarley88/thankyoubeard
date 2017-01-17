@@ -1,4 +1,5 @@
 import re
+import random
 import aiohttp
 
 from skybeard.beards import BeardChatHandler
@@ -9,6 +10,14 @@ async def get_key():
 
 
 BOT_JSON = None
+THANK_YOUS = ['thank', 'thanks', 'thx', 'ty']
+YOUR_WELCOMES = [
+    'No problem, {name}.',
+    'You\'re welcome, {name}.',
+    'I have your back, {name}.',
+    'Glad to be of service, {name}.',
+    'I only wish I could do more, {name}.',
+]
 
 
 async def get_me():
@@ -24,13 +33,12 @@ async def get_me():
 
 
 async def is_being_thanked(bot, msg):
-    thank_yous = ['thank', 'thanks', 'thx']
     me = await get_me()
 
     try:
         thank_you_matches = (
             re.match(r"\b{}\b".format(x), msg['text'].lower())
-            for x in thank_yous)
+            for x in THANK_YOUS)
         name_or_username_matches = [
             me['first_name'] in msg['text'],
             me['username'] in msg['text']
@@ -43,7 +51,7 @@ async def is_being_thanked(bot, msg):
 
 class ThankYouBeard(BeardChatHandler):
 
-    __userhelp__ = """A simple echo beard. Echos whatever it is sent."""
+    __userhelp__ = """A simple thank you beard. Replies when thanked."""
 
     __commands__ = [
         (is_being_thanked, 'say_thank_you', None)
@@ -51,4 +59,4 @@ class ThankYouBeard(BeardChatHandler):
 
     async def say_thank_you(self, msg):
         await self.sender.sendMessage(
-            "No problem, {}.".format(msg['from']['first_name']))
+            random.choice(YOUR_WELCOMES).format(name=msg['from']['first_name']))
