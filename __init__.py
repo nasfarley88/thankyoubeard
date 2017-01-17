@@ -43,9 +43,10 @@ async def is_being_thanked(bot, msg):
         thank_you_matches = (
             re.match(r"\b{}\b".format(x), msg['text'].lower())
             for x in THANK_YOUS)
+        partial_ratio_cut = 75.0
         name_or_username_matches = [
-            fuzz.partial_ratio(me['first_name'], msg['text']) > 90.0,
-            fuzz.partial_ratio(me['username'], msg['text']) > 90.0,
+            fuzz.partial_ratio(me['first_name'].lower(), msg['text'].lower()) > partial_ratio_cut,
+            fuzz.partial_ratio(me['username'].lower(), msg['text'].lower()) > partial_ratio_cut,
         ]
         if any(thank_you_matches) and any(name_or_username_matches):
             return True
@@ -63,10 +64,6 @@ class ThankYouBeard(BeardChatHandler):
     __commands__ = [
         (is_being_thanked, 'say_thank_you', None)
     ]
-
-    # async def on_chat_message(self, msg):
-    #     import pdb; pdb.set_trace()
-    #     super().on_chat_message(msg)
 
     async def say_thank_you(self, msg):
         await self.sender.sendMessage(
