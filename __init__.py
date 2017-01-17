@@ -1,8 +1,12 @@
 import re
 import random
 import aiohttp
+from fuzzywuzzy import fuzz
+import logging
 
 from skybeard.beards import BeardChatHandler
+
+logger = logging.getLogger(__name__)
 
 
 async def get_key():
@@ -40,13 +44,16 @@ async def is_being_thanked(bot, msg):
             re.match(r"\b{}\b".format(x), msg['text'].lower())
             for x in THANK_YOUS)
         name_or_username_matches = [
-            me['first_name'] in msg['text'],
-            me['username'] in msg['text']
+            fuzz.partial_ratio(me['first_name'], msg['text']) > 90.0,
+            fuzz.partial_ratio(me['username'], msg['text']) > 90.0,
         ]
         if any(thank_you_matches) and any(name_or_username_matches):
             return True
     except AttributeError:
         pass
+    except Exception as e:
+        logger.error(e)
+        raise e
 
 
 class ThankYouBeard(BeardChatHandler):
@@ -56,6 +63,10 @@ class ThankYouBeard(BeardChatHandler):
     __commands__ = [
         (is_being_thanked, 'say_thank_you', None)
     ]
+
+    # async def on_chat_message(self, msg):
+    #     import pdb; pdb.set_trace()
+    #     super().on_chat_message(msg)
 
     async def say_thank_you(self, msg):
         await self.sender.sendMessage(
