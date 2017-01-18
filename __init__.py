@@ -4,6 +4,8 @@ import aiohttp
 from fuzzywuzzy import fuzz
 import logging
 
+from . import config
+
 from skybeard.beards import BeardChatHandler
 
 logger = logging.getLogger(__name__)
@@ -14,14 +16,6 @@ async def get_key():
 
 
 BOT_JSON = None
-THANK_YOUS = ['thank', 'thanks', 'thx', 'ty']
-YOUR_WELCOMES = [
-    'No problem, {name}.',
-    'You\'re welcome, {name}.',
-    'I have your back, {name}.',
-    'Glad to be of service, {name}.',
-    'I only wish I could do more, {name}.',
-]
 
 
 async def get_me():
@@ -36,25 +30,31 @@ async def get_me():
     return BOT_JSON
 
 
+async def passes_partial_ratio(s1, s2, min_partial_ratio=75.0):
+    """Returns True if lowercase s1 and s2 matches enough."""
+    return fuzz.partial_ratio(
+        s1.lower(),
+        s2.lower()
+    ) > min_partial_ratio
+
+
 async def is_being_thanked(bot, msg):
     me = await get_me()
 
     try:
         thank_you_matches = (
-            re.match(r"\b{}\b".format(x), msg['text'].lower())
-            for x in THANK_YOUS)
+            re.match(
+                r"\b{}\b".format(x).lower(), msg['text'].lower())
+                for x in config.thank_yous)
         partial_ratio_cut = 75.0
         name_or_username_matches = [
-            fuzz.partial_ratio(me['first_name'].lower(), msg['text'].lower()) > partial_ratio_cut,
-            fuzz.partial_ratio(me['username'].lower(), msg['text'].lower()) > partial_ratio_cut,
+            await passes_partial_ratio(me['first_name'], msg['text']),
+            await passes_partial_ratio(me['username'], msg['text']),
         ]
         if any(thank_you_matches) and any(name_or_username_matches):
             return True
     except KeyError:
         pass
-    except Exception as e:
-        logger.error(e)
-        raise e
 
 
 class ThankYouBeard(BeardChatHandler):
@@ -67,4 +67,4 @@ class ThankYouBeard(BeardChatHandler):
 
     async def say_thank_you(self, msg):
         await self.sender.sendMessage(
-            random.choice(YOUR_WELCOMES).format(name=msg['from']['first_name']))
+            random.choice(config.your_welcomes).format(name=msg['from']['first_name']))
