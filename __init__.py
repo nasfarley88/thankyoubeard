@@ -50,7 +50,7 @@ async def is_being_thanked(bot, msg):
         ]
         if any(thank_you_matches) and any(name_or_username_matches):
             return True
-    except AttributeError:
+    except KeyError:
         pass
     except Exception as e:
         logger.error(e)
